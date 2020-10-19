@@ -24,11 +24,15 @@
 #include "kokkos_abstraction.hpp"
 
 namespace parthenon {
+static int myCycle = 0;
+void setCycle(int nowCycle) { myCycle = nowCycle; }
+int getCycle() { return myCycle; }
 
 namespace Update {
 
 TaskStatus FluxDivergence(std::shared_ptr<Container<Real>> &in,
                           std::shared_ptr<Container<Real>> &dudt_cont) {
+  static int myCount = 0;
   std::shared_ptr<MeshBlock> pmb = in->GetBlockPointer();
 
   const IndexDomain interior = IndexDomain::interior;
@@ -38,6 +42,9 @@ TaskStatus FluxDivergence(std::shared_ptr<Container<Real>> &in,
 
   auto vin = in->PackVariablesAndFluxes({Metadata::Independent});
   auto dudt = dudt_cont->PackVariables({Metadata::Independent});
+
+  //SS  std::cout << "________________________________FLUX DIVERGENCE<<<<<< "<< myCount << std::endl;
+  myCount++;
 
   auto &coords = pmb->coords;
   int ndim = pmb->pmy_mesh->ndim;
@@ -60,6 +67,33 @@ TaskStatus FluxDivergence(std::shared_ptr<Container<Real>> &in,
         }
         dudt(l, k, j, i) /= -coords.Volume(k, j, i);
       });
+  if ((pmb->gid <= 1)) {
+    PackIndexMap vmap; // recompute the pack
+    auto v = in->PackVariablesAndFluxes({Metadata::Independent}, vmap);
+    std::vector<std::string> names;
+    //SS    if (1)
+      // for (auto &item : vmap.map_) {
+      //   std::cout << item.first << ":" << item.second.first << ":" <<
+      //   item.second.second
+      //             << std::endl;
+      //   names.push_back(item.first);
+      // }
+    //SS    if (1)
+  //     {
+  // 	int ls=3;
+  // 	int le=5;
+  // 	auto name = std::string("rho_");
+  // 	for (int l = ls; l <=le + 0 * dudt.GetDim(4); l++) {
+  // 	  for (int i = 0; i < 20; i++) {
+  // 	    std::cout.precision(std::numeric_limits<double>::max_digits10);
+  // 	    std::cout << pmb->gid << ":" << myCycle << ":" <<name << l-ls << ":" << i <<
+  // ":"
+  // 		      << vin(l, 0, 0, i) << std::endl;
+  // 	    // printf("_%6d_:dudt: %d,0,0,%d %.30lf\n", myCycle,l, i, dudt(l, 0, 0, i));
+  // 	  }
+  // 	}
+  //     }
+  }
 
   return TaskStatus::complete;
 }
@@ -73,6 +107,7 @@ void UpdateContainer(std::shared_ptr<Container<Real>> &in,
   auto vout = out->PackVariables({Metadata::Independent});
   auto dudt = dudt_cont->PackVariables({Metadata::Independent});
 
+  //SS  std::cout << "________________________________UPDATE<<<<<<"<<std::endl;
   pmb->par_for(
       "UpdateContainer", 0, vin.GetDim(4) - 1, 0, vin.GetDim(3) - 1, 0, vin.GetDim(2) - 1,
       0, vin.GetDim(1) - 1,

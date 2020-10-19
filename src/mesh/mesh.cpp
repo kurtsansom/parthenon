@@ -1086,7 +1086,7 @@ void Mesh::Initialize(int res_flag, ParameterInput *pin, ApplicationInput *app_i
         //          if (pbval->nblevel[2][1][1] != -1) ku += NGHOST;
         //        }
 
-        ApplyBoundaryConditions(pmb->real_containers.Get());
+        if (res_flag != 0)  ApplyBoundaryConditions(pmb->real_containers.Get());
         FillDerivedVariables::FillDerived(pmb->real_containers.Get());
       }
 

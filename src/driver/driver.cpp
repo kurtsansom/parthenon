@@ -65,6 +65,8 @@ DriverStatus EvolutionDriver::Execute() {
     }
     // pmesh->UserWorkInLoop();
     tm.ncycle++;
+    extern void setCycle(int);
+    setCycle(tm.ncycle);
     tm.time += tm.dt;
     pmesh->mbcnt += pmesh->nbtotal;
     pmesh->step_since_lb++;

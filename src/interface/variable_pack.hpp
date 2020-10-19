@@ -55,7 +55,7 @@ class PackIndexMap {
     map_[keyval.first] = keyval.second;
   }
 
- private:
+  //SS private:
   std::map<std::string, vpack_types::IndexPair> map_;
 };
 template <typename T>

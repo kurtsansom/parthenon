@@ -140,6 +140,9 @@ ParthenonStatus ParthenonManager::ParthenonInit(int argc, char *argv[]) {
     int ncycle = restartReader->GetAttr<int32_t>("Info", "NCycle");
     pinput->SetInteger("parthenon/time", "ncycle", ncycle);
 
+    extern void setCycle(int);
+    setCycle(ncycle);
+
     // Read package data from restart file
     RestartPackages(*pmesh, *restartReader);
   }
@@ -192,7 +195,8 @@ ParthenonManager::ProcessPackagesDefault(std::unique_ptr<ParameterInput> &pin) {
 void ParthenonManager::RestartPackages(Mesh &rm, RestartReader &resfile) {
   // Restart packages with information for blocks in ids from the restart file
   // Assumption: blocks are contiguous in restart file, may have to revisit this.
-  const IndexDomain interior = IndexDomain::interior;
+  //  const IndexDomain interior = IndexDomain::interior;
+  const IndexDomain interior = IndexDomain::entire;
   auto &packages = rm.packages;
   // Get block list and temp array size
   auto &mb = *(rm.block_list.front());
@@ -203,10 +207,14 @@ void ParthenonManager::RestartPackages(Mesh &rm, RestartReader &resfile) {
   IndexRange myBlocks{nbs, nbe};
 
   // Get an iterator on block 0 for variable listing
+  //  IndexRange out_ib = mb.cellbounds.GetBoundsI(interior);
+  //  IndexRange out_jb = mb.cellbounds.GetBoundsJ(interior);
+  //  IndexRange out_kb = mb.cellbounds.GetBoundsK(interior);
+  // Get an iterator on block 0 for variable listing
   IndexRange out_ib = mb.cellbounds.GetBoundsI(interior);
   IndexRange out_jb = mb.cellbounds.GetBoundsJ(interior);
   IndexRange out_kb = mb.cellbounds.GetBoundsK(interior);
-
+  std::vector<IndexRange> myRange = {out_ib, out_jb, out_kb};
   size_t nCells = static_cast<size_t>(out_ib.e - out_ib.s + 1) *
                   static_cast<size_t>(out_jb.e - out_jb.s + 1) *
                   static_cast<size_t>(out_kb.e - out_kb.s + 1);
@@ -245,11 +253,11 @@ void ParthenonManager::RestartPackages(Mesh &rm, RestartReader &resfile) {
           {parthenon::Metadata::Independent, parthenon::Metadata::Restart}, true);
       for (auto &v : cX.vars) {
         if (vName.compare(v->label()) == 0) {
-	  // TODO(sriram) check whether deep copy is needed here.
+          // TODO(sriram) check whether deep copy is needed here.
           auto v_h = (*v).data.GetHostMirrorAndCopy();
           UNLOADVARIABLEONE(index, tmp, v_h, out_ib.s, out_ib.e, out_jb.s, out_jb.e,
                             out_kb.s, out_kb.e, v4)
-	  (*v).data.DeepCopy(v_h);
+          (*v).data.DeepCopy(v_h);
           found = true;
           break;
         }

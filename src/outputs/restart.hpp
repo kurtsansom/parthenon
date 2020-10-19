@@ -73,8 +73,18 @@ class RestartReader {
 
       /** Define hyperslab in dataset **/
       hsize_t offset[5] = {static_cast<hsize_t>(range.s), 0, 0, 0, 0};
-      hsize_t count[5] = {static_cast<hsize_t>(range.e - range.s + 1), nx3_, nx2_, nx1_,
+      hsize_t count[5] = {static_cast<hsize_t>(range.e - range.s + 1), gx3_, gx2_, gx1_,
                           vlen};
+      std::cout << name << " counts";
+      for (auto x : count) {
+        std::cout << ":" << x;
+      }
+      std::cout << std::endl;
+      std::cout << name << " offsets";
+      for (auto x : offset) {
+        std::cout << ":" << x;
+      }
+      std::cout << std::endl;
       status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);
       if (status < 0) {
         H5Dclose(dataspace);
@@ -233,6 +243,7 @@ class RestartReader {
   // when that changes, this will be revisited
   hid_t fh_;
   hsize_t nx1_, nx2_, nx3_;
+  hsize_t gx1_, gx2_, gx3_;
 #endif
 };
 

@@ -46,6 +46,9 @@ RestartReader::RestartReader(const char *filename) : filename_(filename) {
   nx1_ = static_cast<hsize_t>(blockSize[0]);
   nx2_ = static_cast<hsize_t>(blockSize[1]);
   nx3_ = static_cast<hsize_t>(blockSize[2]);
+  gx1_ = (nx1_>1?static_cast<hsize_t>(blockSize[0]+2*NGHOST):nx1_);
+  gx2_ = (nx2_>1?static_cast<hsize_t>(blockSize[1]+2*NGHOST):nx2_);
+  gx3_ = (nx3_>1?static_cast<hsize_t>(blockSize[2]+2*NGHOST):nx3_);
 #endif
 }
 
@@ -118,7 +121,8 @@ void RestartOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, SimTime *tm) 
   hsize_t max_blocks_global = pm->nbtotal;
   hsize_t num_blocks_local = 0;
 
-  const IndexDomain interior = IndexDomain::interior;
+  //const IndexDomain interior = IndexDomain::interior;
+  const IndexDomain interior = IndexDomain::entire;
 
   auto &mb = *(pm->block_list.front());
 
@@ -405,15 +409,27 @@ void RestartOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, SimTime *tm) 
 
   // write variables
   // create persistent spaces
-  local_count[1] = nx3;
-  local_count[2] = nx2;
-  local_count[3] = nx1;
+  local_count[0] = num_blocks_local;
+  local_count[1] = out_kb.e - out_kb.s + 1;
+  local_count[2] = out_jb.e - out_jb.s + 1;
+  local_count[3] = out_ib.e - out_ib.s + 1;
   local_count[4] = 1;
 
-  global_count[1] = nx3;
-  global_count[2] = nx2;
-  global_count[3] = nx1;
+  global_count[0] = max_blocks_global;
+  global_count[1] = local_count[1];
+  global_count[2] = local_count[2];
+  global_count[3] = local_count[3];
   global_count[4] = 1;
+
+  // local_count[1] = nx3;
+  // local_count[2] = nx2;
+  // local_count[3] = nx1;
+  // local_count[4] = 1;
+
+  // global_count[1] = nx3;
+  // global_count[2] = nx2;
+  // global_count[3] = nx1;
+  // global_count[4] = 1;
 
   hid_t local_DSpace = H5Screate_simple(5, local_count, NULL);
   hid_t global_DSpace = H5Screate_simple(5, global_count, NULL);
@@ -426,7 +442,10 @@ void RestartOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, SimTime *tm) 
   // If I'm wrong about this, we can always rewrite this later.
   // Sriram
 
-  const hsize_t varSize = nx3 * nx2 * nx1;
+  //  const hsize_t varSize = nx3 * nx2 * nx1;
+  hsize_t varSize = static_cast<size_t>(out_ib.e - out_ib.s + 1) *
+                    static_cast<size_t>(out_jb.e - out_jb.s + 1) *
+                    static_cast<size_t>(out_kb.e - out_kb.s + 1);
 
   auto ciX = ContainerIterator<Real>(
       mb.real_containers.Get(),
